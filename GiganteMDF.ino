@@ -32,17 +32,13 @@ volatile uint8_t motorAtivo = 1;
 // Função para configurar os pinos e PWM
 void setup() {
     // Configurar pinos do motor e laser como saída
-    MOTOR_DDR |= (1 << ENABLE12);
-    MOTOR_DDR |= (1 << ENABLE34);
-	MOTOR_DDR |= (1 << INPUT1);
-	MOTOR_DDR |= (1 << INPUT2);
-	MOTOR_DDR |= (1 << INPUT4);
+    MOTOR_DDR |= (1 << ENABLE12) | (1 << ENABLE34) | (1 << INPUT1) | (1 << INPUT2) | (1 << INPUT4);
 	LASER_DDR |= (1 << INPUT3);
 	LED_DDR   |= (1 << LASER_PIN);
     
     // Configurar LEDs como saída
     LED_DDR |= (1 << LED_PIN_1) | (1 << LED_PIN_2) | (1 << LED_PIN_3);
-    LED_PORT |= (1 << LED_PIN_1) | (1 << LED_PIN_2) | (1 << LED_PIN_3);  // Inicialmente, todos LEDs ligados
+    //LED_PORT |= (1 << LED_PIN_1) | (1 << LED_PIN_2) | (1 << LED_PIN_3);  // Inicialmente, todos LEDs ligados
    
     // Configurar receptor como entrada
     DDRD &= ~(1 << RECEPTOR_PIN);
@@ -53,10 +49,10 @@ void setup() {
     TCCR1B |= (1 << WGM13) | (1 << WGM12) | (1 << CS11);  // Prescaler de 8
     ICR1 = 19999;  // Freqüência de PWM em 50Hz para controle do motor
     
-    // Configurar Timer0 para o controle do laser (prescaler 1024)
+    // Configurar Timer0 para o controle do laser (prescaler 1024) -- Usar overflow para conseguir usar o laser?
     TCCR0A |= (1 << WGM01);  // Modo CTC
     TCCR0B |= (1 << CS02) | (1 << CS00);  // Prescaler 1024
-    OCR0A = 156;  // Aproximadamente 1 segundo
+    OCR0A = 254;  // Aproximadamente 1 segundo
     
     // Habilitar interrupção no receptor (INT0)  --  Reset dos LEDS
     EICRA |= (0b10 << ISC00);  // Interrupção na borda de descida
@@ -74,7 +70,7 @@ void setup() {
 
 // Função para controle do laser
 ISR(TIMER0_COMPA_vect) {
-    LASER_PORT ^= (1 << LASER_PIN);  // Alterna o estado do laser a cada 1 segundo
+    //LASER_PORT ^= (1 << LASER_PIN);  // Alterna o estado do laser a cada 1 segundo
 	
 }
 
@@ -89,9 +85,6 @@ ISR(PCINT8_vect) {
         } else if (vidas == 0) {
             LED_PORT &= ~(1 << LED_PIN_3);  // Apagar 3º LED
         }
-        motorAtivo = 0;  // Desativar motor
-        _delay_ms(5000);  // Pausa de 5 segundos
-        motorAtivo = 1;  // Reativar motor
     }
 }
 
@@ -108,14 +101,13 @@ int main(void) {
 	MOTOR_PORT |= (1 << INPUT1 );
 	LED_PORT   |= (1 << LASER_PIN );
 
-    while (1) {
-		
-        if (motorAtivo) {
-            OCR1A = 1500;  // Controle do motor via PWM (exemplo de valor)
-        } else {
-            OCR1A = 0;  // Desativar motor
-			
+    while (1) 
+		{
+		if(TCNT0 >= 254)
+		{
+			LASER_PORT ^= (1 << LASER_PIN);  // Alterna o estado do laser a cada 1 segundo
+		}
+        
         }
 		
-    }
 }
